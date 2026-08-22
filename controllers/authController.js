@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 const userRepository = require('../repositories/userRepository');
-
+//
 class AuthController {
   async signup(req, res) {
     try {
