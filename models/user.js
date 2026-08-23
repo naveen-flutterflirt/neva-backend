@@ -81,6 +81,12 @@ const User = sequelize.define(
       },
     },
 
+    address: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      defaultValue: '',
+    },
+
     role: {
       type: DataTypes.STRING(20),
       allowNull: false,

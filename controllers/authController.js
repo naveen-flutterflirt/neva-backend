@@ -2,7 +2,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 const userRepository = require('../repositories/userRepository');
-//
+const { sendOtpEmail } = require('../utils/mailer');
+
+const otpStore = new Map();
+
 class AuthController {
   async signup(req, res) {
     try {
@@ -195,6 +198,169 @@ class AuthController {
     } catch (error) {
       console.error('Get profile error:', error);
       return res.status(500).json({ error: 'Internal Server Error', message: error.message });
+    }
+  }
+
+  async getCustomers(req, res) {
+    try {
+      const customers = await userRepository.getCustomersWithOrders();
+      return res.status(200).json({
+        success: true,
+        data: customers,
+      });
+    } catch (error) {
+      console.error('Get customers error:', error);
+      return res.status(500).json({ error: 'Internal Server Error', message: error.message });
+    }
+  }
+
+  async updateProfile(req, res) {
+    try {
+      const userId = req.user.id;
+      const { name, email, whatsappNumber, contactNumber, address } = req.body;
+
+      const user = await userRepository.findById(userId);
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      const oldEmail = user.email;
+      const updateData = {};
+      if (name) updateData.name = name.trim();
+      if (email) updateData.email = email.trim().toLowerCase();
+      if (whatsappNumber) updateData.whatsappNumber = whatsappNumber.trim();
+      if (contactNumber) updateData.contactNumber = contactNumber.trim();
+      if (address !== undefined) updateData.address = address.trim();
+
+      await user.update(updateData);
+
+      // If email was updated, sync past orders and custom print requests to new email
+      if (email && email.trim().toLowerCase() !== oldEmail) {
+        const newEmail = email.trim().toLowerCase();
+        try {
+          const { Order, CustomPrintRequest } = require('../models');
+          const { Op } = require('sequelize');
+          if (Order) {
+            await Order.update(
+              { customerEmail: newEmail, userId: user.id },
+              { where: { [Op.or]: [{ userId: user.id }, { customerEmail: oldEmail }] } }
+            );
+          }
+          if (CustomPrintRequest) {
+            await CustomPrintRequest.update(
+              { customerEmail: newEmail },
+              { where: { customerEmail: oldEmail } }
+            );
+          }
+        } catch (syncErr) {
+          console.warn('Order email sync notice:', syncErr.message);
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Profile updated successfully! ✨',
+        data: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          whatsappNumber: user.whatsappNumber,
+          contactNumber: user.contactNumber,
+          address: user.address,
+          role: user.role,
+          createdAt: user.createdAt,
+        },
+      });
+    } catch (error) {
+      console.error('Update Profile Error:', error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to update profile.',
+      });
+    }
+  }
+
+  async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ success: false, message: 'Email address is required.' });
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+      const user = await userRepository.findByEmail(normalizedEmail);
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'No registered account found with this email address.' });
+      }
+
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = Date.now() + 10 * 60 * 1000;
+
+      otpStore.set(normalizedEmail, { otp, expiresAt });
+
+      console.log(`\n========================================\n🔐 [OTP CODE GENERATED]\nRecipient: ${normalizedEmail}\nOTP Code: ${otp}\n========================================\n`);
+
+      // Dispatch email via Nodemailer
+      const mailRes = await sendOtpEmail(normalizedEmail, otp);
+      if (!mailRes.success) {
+        console.error('❌ Email dispatch notice:', mailRes.error);
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: '6-digit OTP verification code sent to your email address!',
+      });
+    } catch (error) {
+      console.error('ForgotPassword error:', error);
+      return res.status(500).json({ success: false, message: 'Failed to process request.' });
+    }
+  }
+
+  async resetPassword(req, res) {
+    try {
+      const { email, otp, newPassword } = req.body;
+      if (!email || !otp || !newPassword) {
+        return res.status(400).json({ success: false, message: 'Email, OTP code, and new password are required.' });
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+      const record = otpStore.get(normalizedEmail);
+
+      if (!record) {
+        return res.status(400).json({ success: false, message: 'No OTP request found for this email. Please request a new OTP.' });
+      }
+
+      if (Date.now() > record.expiresAt) {
+        otpStore.delete(normalizedEmail);
+        return res.status(400).json({ success: false, message: 'OTP verification code has expired. Please request a new code.' });
+      }
+
+      if (record.otp !== otp.trim()) {
+        return res.status(400).json({ success: false, message: 'Invalid 6-digit OTP code. Please check and try again.' });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ success: false, message: 'New password must be at least 6 characters long.' });
+      }
+
+      const user = await userRepository.findByEmail(normalizedEmail);
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found.' });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await user.update({ password: hashedPassword });
+      otpStore.delete(normalizedEmail);
+
+      console.log(`\n========================================\n✅ [PASSWORD RESET SUCCESS] User: ${normalizedEmail} updated password!\n========================================\n`);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Password reset successfully! You can now sign in with your new password.',
+      });
+    } catch (error) {
+      console.error('ResetPassword error:', error);
+      return res.status(500).json({ success: false, message: 'Failed to reset password.' });
     }
   }
 }
