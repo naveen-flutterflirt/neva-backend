@@ -1,18 +1,29 @@
 require('dotenv').config();
+const { Resend } = require('resend');
 const nodemailer = require('nodemailer');
 
-// Create reusable transporter
+const resendApiKey = process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.trim() : null;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
+// Create reusable transporter fallback
 const createTransporter = () => {
   const user = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : null;
   const pass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '').trim() : null;
 
   if (user && pass) {
+    const port = parseInt(process.env.EMAIL_PORT || '587', 10);
+    const host = process.env.EMAIL_HOST || 'smtp.gmail.com';
+    const isSecure = port === 465;
+
     return nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.EMAIL_PORT || '465', 10),
-      secure: true,
+      host,
+      port,
+      secure: isSecure,
       auth: { user, pass },
-      tls: { rejectUnauthorized: false }
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 10000,
+      greetingTimeout: 5000,
+      socketTimeout: 15000,
     });
   }
 
@@ -20,11 +31,9 @@ const createTransporter = () => {
 };
 
 /**
- * Send OTP Password Reset Email via Nodemailer
+ * Send OTP Password Reset Email via Resend API or Nodemailer SMTP
  */
 const sendOtpEmail = async (toEmail, otpCode) => {
-  const transporter = createTransporter();
-
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -68,6 +77,30 @@ const sendOtpEmail = async (toEmail, otpCode) => {
     </html>
   `;
 
+  // 1. Try Resend API first if configured
+  if (resend) {
+    try {
+      const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+      const data = await resend.emails.send({
+        from: `NIVASHOP Security <${fromEmail}>`,
+        to: [toEmail],
+        subject: `🔑 Your 6-Digit Password Reset OTP - NIVASHOP.IN`,
+        html: htmlContent,
+      });
+
+      if (data && data.error) {
+        console.error('❌ Resend API Error:', data.error);
+      } else {
+        console.log(`\n========================================\n🚀 [RESEND API EMAIL SENT SUCCESS]\nMessage ID: ${data?.id || 'OK'}\nRecipient: ${toEmail}\n========================================\n`);
+        return { success: true, messageId: data?.id };
+      }
+    } catch (resendErr) {
+      console.error('❌ Resend API Exception:', resendErr.message || resendErr);
+    }
+  }
+
+  // 2. Fallback to Nodemailer SMTP
+  const transporter = createTransporter();
   if (transporter) {
     try {
       const info = await transporter.sendMail({
@@ -81,11 +114,10 @@ const sendOtpEmail = async (toEmail, otpCode) => {
       return { success: true, messageId: info.messageId };
     } catch (err) {
       console.error('❌ Nodemailer Send Error:', err);
-      // Fallback console log if send fails
       return { success: false, error: err.message };
     }
   } else {
-    console.log(`\n========================================\n📧 [NODEMAILER DEMO MODE]\n(Set EMAIL_USER & EMAIL_PASS in backend .env to send real emails to inbox!)\nRecipient: ${toEmail}\nOTP Code: ${otpCode}\n========================================\n`);
+    console.log(`\n========================================\n📧 [DEMO MODE]\nRecipient: ${toEmail}\nOTP Code: ${otpCode}\n========================================\n`);
     return { success: true, demo: true };
   }
 };

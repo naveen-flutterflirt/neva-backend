@@ -69,14 +69,28 @@ class AuthController {
       }
 
       // 6. Check if email already exists
-      const existingUser = await userRepository.findByEmail(
-        normalizedEmail
-      );
-
-      if (existingUser) {
+      const existingEmailUser = await userRepository.findByEmail(normalizedEmail);
+      if (existingEmailUser) {
         return res.status(409).json({
           error: 'Conflict',
-          message: 'An account with this email address already exists.',
+          message: 'An account with this email address already exists. Please Sign In.',
+        });
+      }
+
+      // 7. Check if contact or WhatsApp number already exists
+      const existingContactUser = await userRepository.findByPhone(normalizedContactNumber);
+      if (existingContactUser) {
+        return res.status(409).json({
+          error: 'Conflict',
+          message: 'An account with this contact number already exists. Please Sign In.',
+        });
+      }
+
+      const existingWhatsappUser = await userRepository.findByPhone(normalizedWhatsappNumber);
+      if (existingWhatsappUser) {
+        return res.status(409).json({
+          error: 'Conflict',
+          message: 'An account with this WhatsApp number already exists. Please Sign In.',
         });
       }
 

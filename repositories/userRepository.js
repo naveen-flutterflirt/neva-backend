@@ -17,6 +17,17 @@ class UserRepository {
     });
   }
 
+  async findByPhone(phone) {
+    return await User.findOne({
+      where: {
+        [Op.or]: [
+          { contactNumber: phone },
+          { whatsappNumber: phone }
+        ]
+      }
+    });
+  }
+
   async findById(id) {
     return await User.findByPk(id, {
       attributes: { exclude: ['password'] }
