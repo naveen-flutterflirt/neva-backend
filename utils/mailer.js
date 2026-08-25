@@ -39,7 +39,7 @@ const sendOtpEmail = async (toEmail, otpCode) => {
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Password Reset OTP - NIVASHOP.IN</title>
+      <title>Password Reset OTP - NIVASHOP</title>
       <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f7; color: #1f2937; margin: 0; padding: 0; }
         .container { max-width: 550px; margin: 30px auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #e5e7eb; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
@@ -54,7 +54,7 @@ const sendOtpEmail = async (toEmail, otpCode) => {
     <body>
       <div class="container">
         <div class="header">
-          <h1>NIVASHOP.IN</h1>
+          <h1>NIVASHOP</h1>
           <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.9;">SECURITY VERIFICATION</p>
         </div>
         <div class="content">
@@ -70,7 +70,7 @@ const sendOtpEmail = async (toEmail, otpCode) => {
           </p>
         </div>
         <div class="footer">
-          &copy; ${new Date().getFullYear()} NIVASHOP.IN. All rights reserved. Custom 3D Printing &amp; Smart IoT Hardware.
+          &copy; ${new Date().getFullYear()} NIVASHOP. All rights reserved. Custom 3D Printing &amp; Smart IoT Hardware.
         </div>
       </div>
     </body>
@@ -84,7 +84,7 @@ const sendOtpEmail = async (toEmail, otpCode) => {
       const data = await resend.emails.send({
         from: `NIVASHOP Security <${fromEmail}>`,
         to: [toEmail],
-        subject: `🔑 Your 6-Digit Password Reset OTP - NIVASHOP.IN`,
+        subject: `🔑 Your 6-Digit Password Reset OTP - NIVASHOP`,
         html: htmlContent,
       });
 
@@ -106,7 +106,7 @@ const sendOtpEmail = async (toEmail, otpCode) => {
       const info = await transporter.sendMail({
         from: `"${process.env.EMAIL_FROM_NAME || 'NIVASHOP Security'}" <${process.env.EMAIL_USER}>`,
         to: toEmail,
-        subject: `🔑 Your 6-Digit Password Reset OTP - NIVASHOP.IN`,
+        subject: `🔑 Your 6-Digit Password Reset OTP - NIVASHOP`,
         html: htmlContent,
       });
 

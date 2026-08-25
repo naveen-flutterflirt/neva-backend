@@ -164,7 +164,7 @@ exports.getCustomPrintRequests = async (req, res) => {
 exports.updateCustomPrintRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, quotePrice } = req.body;
+    const { status, quotePrice, paymentStatus, paymentMethod } = req.body;
 
     const printReq = await CustomPrintRequest.findByPk(id);
     if (!printReq) {
@@ -173,6 +173,8 @@ exports.updateCustomPrintRequest = async (req, res) => {
 
     if (status !== undefined) printReq.status = status;
     if (quotePrice !== undefined) printReq.quotePrice = quotePrice;
+    if (paymentStatus !== undefined) printReq.paymentStatus = paymentStatus;
+    if (paymentMethod !== undefined) printReq.paymentMethod = paymentMethod;
 
     await printReq.save();
 

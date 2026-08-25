@@ -6,6 +6,7 @@ const ProductImage = require('./productImage');
 const CustomPrintRequest = require('./customPrintRequest');
 const Order = require('./order');
 const OrderItem = require('./orderItem');
+const SocialPost = require('./socialPost');
 
 // User <-> Order
 User.hasMany(Order, { foreignKey: 'userId', as: 'orders' });
@@ -24,4 +25,5 @@ module.exports = {
   CustomPrintRequest,
   Order,
   OrderItem,
+  SocialPost,
 };

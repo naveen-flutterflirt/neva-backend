@@ -8,12 +8,21 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Express JSON SyntaxError Handler
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ error: 'Bad Request', message: 'Invalid JSON payload format.' });
+  }
+  next();
+});
+
 const authRoutes = require('./routes/authRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const productRoutes = require('./routes/productRoutes');
 const customPrintRoutes = require('./routes/customPrintRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const socialPostRoutes = require('./routes/socialPostRoutes');
 
 // Load models & associations
 require('./models');
@@ -24,6 +33,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/custom-print', customPrintRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/social-posts', socialPostRoutes);
 
 const startServer = async () => {
   try {
