@@ -60,6 +60,52 @@ class ProductRepository {
     return await Product.findOne({ where: { sku } });
   }
 
+  async findNewArrivals() {
+    let products = await Product.findAll({
+      where: {
+        isNewArrival: true,
+        status: 'active',
+      },
+      include: [
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name', 'slug'],
+        },
+        {
+          model: ProductImage,
+          as: 'images',
+          attributes: ['id', 'imageUrl', 'isPrimary', 'sortOrder', 'mediaType', 'color'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+    if (!products || products.length === 0) {
+      products = await Product.findAll({
+        where: {
+          status: 'active',
+        },
+        include: [
+          {
+            model: Category,
+            as: 'category',
+            attributes: ['id', 'name', 'slug'],
+          },
+          {
+            model: ProductImage,
+            as: 'images',
+            attributes: ['id', 'imageUrl', 'isPrimary', 'sortOrder', 'mediaType', 'color'],
+          },
+        ],
+        order: [['createdAt', 'DESC']],
+        limit: 8,
+      });
+    }
+
+    return products;
+  }
+
   async create(productData) {
     return await Product.create(productData);
   }

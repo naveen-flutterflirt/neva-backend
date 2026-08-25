@@ -122,6 +122,13 @@ const Product = sequelize.define(
       },
     },
 
+    isNewArrival: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: 'is_new_arrival',
+    },
+
     materialVariants: {
       type: DataTypes.JSONB,
       allowNull: true,

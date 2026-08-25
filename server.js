@@ -40,9 +40,10 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('Database connected successfully.');
 
-    // Auto-migrate schema: ensure address column exists on users table
+    // Auto-migrate schema: ensure address column exists on users table & is_new_arrival on products table
     try {
       await sequelize.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT;');
+      await sequelize.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS is_new_arrival BOOLEAN DEFAULT false;');
     } catch (colErr) {
       console.log('Schema migration check:', colErr.message);
     }

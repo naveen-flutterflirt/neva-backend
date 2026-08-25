@@ -82,6 +82,23 @@ class ProductController {
     }
   }
 
+  async getNewArrivals(req, res) {
+    try {
+      const products = await productRepository.findNewArrivals();
+      const formattedProducts = (products || []).map(formatProduct);
+      return res.status(200).json({
+        success: true,
+        data: formattedProducts,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve new arrivals',
+        error: error.message,
+      });
+    }
+  }
+
   async getProduct(req, res) {
     try {
       const { id } = req.params;
@@ -116,6 +133,7 @@ class ProductController {
         discountPrice,
         stock,
         status,
+        isNewArrival,
         primaryImageIndex,
         materialVariants,
         colorOptions,
@@ -164,6 +182,7 @@ class ProductController {
         discountPrice: discountPrice || null,
         stock: stock || 0,
         status: status || 'draft',
+        isNewArrival: isNewArrival === 'true' || isNewArrival === true,
         slug,
         materialVariants: parseJSONField(materialVariants, []),
         colorOptions: parseJSONField(colorOptions, []),
@@ -300,6 +319,9 @@ class ProductController {
       if (discountPrice !== undefined) updateData.discountPrice = discountPrice || null;
       if (stock !== undefined) updateData.stock = stock;
       if (status) updateData.status = status;
+      if (req.body.isNewArrival !== undefined) {
+        updateData.isNewArrival = req.body.isNewArrival === 'true' || req.body.isNewArrival === true;
+      }
 
       if (materialVariants !== undefined) updateData.materialVariants = parseJSONField(materialVariants, []);
       if (colorOptions !== undefined) updateData.colorOptions = parseJSONField(colorOptions, []);
