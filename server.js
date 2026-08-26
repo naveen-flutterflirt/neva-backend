@@ -35,6 +35,23 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/social-posts', socialPostRoutes);
 
+// for testing 
+app.get('/api/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Backend is working'
+  });
+});
+
+// Dummy POST API
+app.post('/api/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'POST API is working',
+    data: req.body
+  });
+});
+
 const startServer = async () => {
   try {
     await sequelize.authenticate();

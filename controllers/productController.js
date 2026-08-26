@@ -18,7 +18,7 @@ const generateSlug = (name) => {
 // Helper to upload a single file to AWS S3
 const uploadToS3 = async (file) => {
   const uniqueKey = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}-${file.originalname.replace(/\s+/g, '-')}`;
-  
+
   const uploadParams = {
     Bucket: bucketName,
     Key: uniqueKey,
@@ -35,12 +35,12 @@ const deleteFromS3 = async (imageUrl) => {
   try {
     const urlParts = imageUrl.split('/');
     const key = urlParts[urlParts.length - 1];
-    
+
     const deleteParams = {
       Bucket: bucketName,
       Key: key,
     };
-    
+
     await s3Client.send(new DeleteObjectCommand(deleteParams));
   } catch (error) {
     console.error('Failed to delete S3 object:', error.message);
@@ -222,7 +222,13 @@ class ProductController {
 
       // Handle Color Option Specific Image uploads to AWS S3
       const colorImages = req.files && req.files['colorImages'] ? req.files['colorImages'] : [];
-      const colorImageIndices = parseJSONField(req.body.colorImageIndices, []);
+      let colorImageIndices = [];
+      const rawIndices = req.body.colorImageIndices;
+      if (Array.isArray(rawIndices)) {
+        colorImageIndices = rawIndices.map(x => parseInt(x, 10));
+      } else if (typeof rawIndices === 'string') {
+        try { colorImageIndices = JSON.parse(rawIndices); } catch (e) { colorImageIndices = [parseInt(rawIndices, 10)]; }
+      }
       let parsedColorOptions = parseJSONField(colorOptions, []);
 
       for (let i = 0; i < colorImages.length; i++) {
@@ -388,7 +394,13 @@ class ProductController {
 
       // Handle Color Option Specific Image uploads to AWS S3
       const colorImages = req.files && req.files['colorImages'] ? req.files['colorImages'] : [];
-      const colorImageIndices = parseJSONField(req.body.colorImageIndices, []);
+      let colorImageIndices = [];
+      const rawIndicesUpdate = req.body.colorImageIndices;
+      if (Array.isArray(rawIndicesUpdate)) {
+        colorImageIndices = rawIndicesUpdate.map(x => parseInt(x, 10));
+      } else if (typeof rawIndicesUpdate === 'string') {
+        try { colorImageIndices = JSON.parse(rawIndicesUpdate); } catch (e) { colorImageIndices = [parseInt(rawIndicesUpdate, 10)]; }
+      }
       let updatedColorOpts = updateData.colorOptions !== undefined ? updateData.colorOptions : (product.colorOptions || []);
 
       for (let i = 0; i < colorImages.length; i++) {
@@ -417,7 +429,7 @@ class ProductController {
 
       // Re-fetch product images to adjust primary image
       const refreshedProduct = await productRepository.findById(id);
-      
+
       if (primaryImageIndex !== undefined) {
         const primaryIdx = parseInt(primaryImageIndex, 10);
         const allImages = refreshedProduct.images.filter(img => img.mediaType === 'image');
