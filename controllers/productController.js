@@ -141,6 +141,7 @@ class ProductController {
         careInstructions,
         keyFeatures,
         specifications,
+        sortOrder,
       } = req.body;
       const images = req.files && req.files['images'] ? req.files['images'] : [];
       const videos = req.files && req.files['videos'] ? req.files['videos'] : [];
@@ -190,6 +191,7 @@ class ProductController {
         careInstructions: parseJSONField(careInstructions, []),
         keyFeatures: parseJSONField(keyFeatures, []),
         specifications: parseJSONField(specifications, {}),
+        sortOrder: sortOrder !== undefined ? parseInt(sortOrder, 10) : 0,
       });
 
       // Upload files to S3
@@ -335,6 +337,7 @@ class ProductController {
       if (careInstructions !== undefined) updateData.careInstructions = parseJSONField(careInstructions, []);
       if (keyFeatures !== undefined) updateData.keyFeatures = parseJSONField(keyFeatures, []);
       if (specifications !== undefined) updateData.specifications = parseJSONField(specifications, {});
+      if (req.body.sortOrder !== undefined) updateData.sortOrder = parseInt(req.body.sortOrder, 10) || 0;
 
       await productRepository.update(id, updateData);
 

@@ -17,7 +17,7 @@ class ProductRepository {
           attributes: ['id', 'imageUrl', 'isPrimary', 'sortOrder', 'mediaType', 'color'],
         },
       ],
-      order: [['createdAt', 'DESC']],
+      order: [['sortOrder', 'ASC'], ['createdAt', 'DESC']],
     });
   }
 

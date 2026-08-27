@@ -170,6 +170,13 @@ const Product = sequelize.define(
       defaultValue: {},
       field: 'specifications',
     },
+
+    sortOrder: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+      field: 'sort_order',
+    },
   },
   {
     tableName: 'products',
