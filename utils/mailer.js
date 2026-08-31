@@ -96,11 +96,18 @@ const sendOtpEmail = async (toEmail, otpCode) => {
 
   if (transporter) {
     try {
-      const fromEmail = process.env.SMTP_USER || process.env.EMAIL_USER || 'no-reply@nivashop.in';
+      let fromEmail = (process.env.SMTP_FROM || process.env.SMTP_USER || process.env.EMAIL_USER || 'no-reply@nivashop.in').trim();
       const fromName = process.env.EMAIL_FROM_NAME || 'NIVASHOP Security';
 
+      let fromHeader = '';
+      if (fromEmail.includes('<') && fromEmail.includes('>')) {
+        fromHeader = fromEmail;
+      } else {
+        fromHeader = `"${fromName}" <${fromEmail}>`;
+      }
+
       const info = await transporter.sendMail({
-        from: `"${fromName}" <${fromEmail}>`,
+        from: fromHeader,
         to: toEmail,
         subject: `🔑 ${otpCode} is your NIVASHOP Password Reset Code`,
         html: htmlContent,
