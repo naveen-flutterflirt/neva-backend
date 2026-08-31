@@ -3,6 +3,13 @@ const Category = require('../models/category');
 class CategoryRepository {
   async findAll() {
     return await Category.findAll({
+      include: [
+        {
+          model: Category,
+          as: 'subcategories',
+          attributes: ['id', 'name', 'slug', 'parentId']
+        }
+      ],
       order: [['createdAt', 'DESC']],
     });
   }

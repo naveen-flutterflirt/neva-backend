@@ -51,7 +51,17 @@ const Category = sequelize.define(
       },
     },
 
-
+    parentId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'parent_id',
+      references: {
+        model: 'categories',
+        key: 'id',
+      },
+      onDelete: 'SET NULL',
+      onUpdate: 'CASCADE',
+    },
   },
   {
     tableName: 'categories',

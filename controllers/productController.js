@@ -142,6 +142,7 @@ class ProductController {
         keyFeatures,
         specifications,
         sortOrder,
+        subCategoryId,
       } = req.body;
       const images = req.files && req.files['images'] ? req.files['images'] : [];
       const videos = req.files && req.files['videos'] ? req.files['videos'] : [];
@@ -173,7 +174,6 @@ class ProductController {
         });
       }
 
-      // Create Product record
       const product = await productRepository.create({
         name,
         categoryId,
@@ -192,6 +192,7 @@ class ProductController {
         keyFeatures: parseJSONField(keyFeatures, []),
         specifications: parseJSONField(specifications, {}),
         sortOrder: sortOrder !== undefined ? parseInt(sortOrder, 10) : 0,
+        subCategoryId: subCategoryId || null
       });
 
       // Upload files to S3
@@ -292,6 +293,7 @@ class ProductController {
         careInstructions,
         keyFeatures,
         specifications,
+        subCategoryId,
       } = req.body;
       const images = req.files && req.files['images'] ? req.files['images'] : [];
       const videos = req.files && req.files['videos'] ? req.files['videos'] : [];
@@ -338,6 +340,7 @@ class ProductController {
       if (keyFeatures !== undefined) updateData.keyFeatures = parseJSONField(keyFeatures, []);
       if (specifications !== undefined) updateData.specifications = parseJSONField(specifications, {});
       if (req.body.sortOrder !== undefined) updateData.sortOrder = parseInt(req.body.sortOrder, 10) || 0;
+      if (subCategoryId !== undefined) updateData.subCategoryId = subCategoryId || null;
 
       await productRepository.update(id, updateData);
 

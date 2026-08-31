@@ -16,6 +16,10 @@ Order.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Order.hasMany(OrderItem, { foreignKey: 'orderId', as: 'items', onDelete: 'CASCADE' });
 OrderItem.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
 
+// Category parent-subcategory self-association
+Category.belongsTo(Category, { as: 'parent', foreignKey: 'parentId' });
+Category.hasMany(Category, { as: 'subcategories', foreignKey: 'parentId' });
+
 module.exports = {
   sequelize,
   User,

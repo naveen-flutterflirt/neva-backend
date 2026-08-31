@@ -12,6 +12,11 @@ class ProductRepository {
           attributes: ['id', 'name', 'slug'],
         },
         {
+          model: Category,
+          as: 'subCategory',
+          attributes: ['id', 'name', 'slug'],
+        },
+        {
           model: ProductImage,
           as: 'images',
           attributes: ['id', 'imageUrl', 'isPrimary', 'sortOrder', 'mediaType', 'color'],
@@ -30,6 +35,11 @@ class ProductRepository {
           attributes: ['id', 'name', 'slug'],
         },
         {
+          model: Category,
+          as: 'subCategory',
+          attributes: ['id', 'name', 'slug'],
+        },
+        {
           model: ProductImage,
           as: 'images',
           attributes: ['id', 'imageUrl', 'isPrimary', 'sortOrder', 'mediaType', 'color'],
@@ -45,6 +55,11 @@ class ProductRepository {
         {
           model: Category,
           as: 'category',
+          attributes: ['id', 'name', 'slug'],
+        },
+        {
+          model: Category,
+          as: 'subCategory',
           attributes: ['id', 'name', 'slug'],
         },
         {
@@ -73,6 +88,11 @@ class ProductRepository {
           attributes: ['id', 'name', 'slug'],
         },
         {
+          model: Category,
+          as: 'subCategory',
+          attributes: ['id', 'name', 'slug'],
+        },
+        {
           model: ProductImage,
           as: 'images',
           attributes: ['id', 'imageUrl', 'isPrimary', 'sortOrder', 'mediaType', 'color'],
@@ -90,6 +110,11 @@ class ProductRepository {
           {
             model: Category,
             as: 'category',
+            attributes: ['id', 'name', 'slug'],
+          },
+          {
+            model: Category,
+            as: 'subCategory',
             attributes: ['id', 'name', 'slug'],
           },
           {

@@ -53,7 +53,7 @@ class CategoryController {
 
   async createCategory(req, res) {
   try {
-    const { name, slug, description, status } = req.body;
+    const { name, slug, description, status, parentId } = req.body;
 
     if (!name) {
       return res.status(400).json({
@@ -78,7 +78,7 @@ class CategoryController {
       slug: finalSlug,
       description,
       status: status || 'active',
-
+      parentId: parentId || null
     });
 
     return res.status(201).json({
@@ -98,7 +98,7 @@ class CategoryController {
   async updateCategory(req, res) {
   try {
     const { id } = req.params;
-    const { name, slug, description, status } = req.body;
+    const { name, slug, description, status, parentId } = req.body;
 
     const category = await categoryRepository.findById(id);
     if (!category) {
@@ -129,6 +129,7 @@ class CategoryController {
 
     if (description !== undefined) updateData.description = description;
     if (status) updateData.status = status;
+    if (parentId !== undefined) updateData.parentId = parentId || null;
 
 
     const updated = await categoryRepository.update(id, updateData);

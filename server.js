@@ -23,6 +23,7 @@ const customPrintRoutes = require('./routes/customPrintRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const socialPostRoutes = require('./routes/socialPostRoutes');
+const shippingRoutes = require('./routes/shippingRoutes');
 
 // Load models & associations
 require('./models');
@@ -34,6 +35,7 @@ app.use('/api/custom-print', customPrintRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/social-posts', socialPostRoutes);
+app.use('/api/shipping', shippingRoutes);
 
 // for testing 
 app.get('/api/test', (req, res) => {
@@ -61,6 +63,8 @@ const startServer = async () => {
     try {
       await sequelize.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT;');
       await sequelize.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS is_new_arrival BOOLEAN DEFAULT false;');
+      await sequelize.query('ALTER TABLE categories ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES categories(id) ON DELETE SET NULL ON UPDATE CASCADE;');
+      await sequelize.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS sub_category_id UUID REFERENCES categories(id) ON DELETE SET NULL ON UPDATE CASCADE;');
     } catch (colErr) {
       console.log('Schema migration check:', colErr.message);
     }

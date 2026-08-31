@@ -177,6 +177,17 @@ const Product = sequelize.define(
       defaultValue: 0,
       field: 'sort_order',
     },
+    subCategoryId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'sub_category_id',
+      references: {
+        model: 'categories',
+        key: 'id',
+      },
+      onDelete: 'SET NULL',
+      onUpdate: 'CASCADE',
+    },
   },
   {
     tableName: 'products',
@@ -187,5 +198,8 @@ const Product = sequelize.define(
 // Association setup
 Product.belongsTo(Category, { as: 'category', foreignKey: 'categoryId' });
 Category.hasMany(Product, { as: 'products', foreignKey: 'categoryId' });
+
+Product.belongsTo(Category, { as: 'subCategory', foreignKey: 'subCategoryId' });
+Category.hasMany(Product, { as: 'subCategoryProducts', foreignKey: 'subCategoryId' });
 
 module.exports = Product;

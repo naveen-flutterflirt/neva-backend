@@ -184,7 +184,7 @@ class OrderController {
 
       return res.status(200).json({
         success: true,
-        message: `Order status updated to ${orderStatus}! 🚚`,
+        message: `Order status updated to ${orderStatus}!`,
         data: updatedOrder,
       });
     } catch (error) {
