@@ -157,6 +157,10 @@ class ProductRepository {
     return await ProductImage.bulkCreate(imagesData);
   }
 
+  async addImages(imagesData) {
+    return await ProductImage.bulkCreate(imagesData);
+  }
+
   async deleteImage(imageId) {
     const img = await ProductImage.findByPk(imageId);
     if (!img) return false;

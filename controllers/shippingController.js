@@ -20,9 +20,9 @@ class ShippingController {
       const parsedSubtotal = parseFloat(subtotal || '0');
       const parsedWeight = parseFloat(weight || '0.5');
 
-      // Check if subtotal is eligible for free shipping (original policy: subtotal > 400 gets free shipping)
-      if (parsedSubtotal >= 400) {
-        console.log(`ℹ️ Subtotal ${parsedSubtotal} >= ₹400. Eligible for free shipping.`);
+      // Check if subtotal is eligible for free shipping (policy: subtotal >= 300 gets free shipping)
+      if (parsedSubtotal >= 300 || parsedSubtotal === 0) {
+        console.log(`ℹ️ Subtotal ${parsedSubtotal} >= ₹300. Eligible for free shipping.`);
         return res.status(200).json({
           success: true,
           shippingFee: 0,
@@ -48,9 +48,9 @@ class ShippingController {
           etd: result.etd,
         });
       } else {
-        // Professional Fallback Strategy: Use flat rate policy if Shiprocket API fails or pincode is not serviceable
+        // Fallback Strategy: Use flat rate policy if Shiprocket API fails or pincode is not serviceable
         console.warn('⚠️ Shiprocket rate query failed, using fallback policy.');
-        const fallbackFee = parsedSubtotal >= 400 || parsedSubtotal === 0 ? 0 : 99;
+        const fallbackFee = parsedSubtotal >= 300 || parsedSubtotal === 0 ? 0 : 50;
         
         return res.status(200).json({
           success: true,
@@ -61,9 +61,8 @@ class ShippingController {
       }
     } catch (error) {
       console.error('Error in shipping rate controller:', error);
-      // Ensure checkout flow never crashes
       const parsedSubtotal = parseFloat(req.query.subtotal || '0');
-      const fallbackFee = parsedSubtotal >= 400 || parsedSubtotal === 0 ? 0 : 99;
+      const fallbackFee = parsedSubtotal >= 300 || parsedSubtotal === 0 ? 0 : 50;
 
       return res.status(200).json({
         success: true,
