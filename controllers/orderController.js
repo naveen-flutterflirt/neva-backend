@@ -27,7 +27,7 @@ class OrderController {
         });
       }
 
-      const generatedOrderNumber = orderId || `NEVA-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const generatedOrderNumber = orderId || `NIVA-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
       let resolvedUserId = req.user ? req.user.id : (req.body.userId || null);
       if (!resolvedUserId && (customer.email || customer.phone)) {
@@ -179,6 +179,22 @@ class OrderController {
         return res.status(404).json({
           success: false,
           message: 'Order not found.',
+        });
+      }
+
+      // 📧 Send email notification to customer if customerEmail exists (non-blocking)
+      if (updatedOrder.customerEmail) {
+        const { sendOrderStatusEmail } = require('../utils/mailer');
+        sendOrderStatusEmail(updatedOrder.customerEmail, {
+          orderNumber: updatedOrder.orderNumber,
+          customerName: updatedOrder.customerName,
+          orderStatus: updatedOrder.orderStatus,
+          trackingNumber: updatedOrder.trackingNumber,
+          totalAmount: updatedOrder.totalAmount,
+          shippingAddress: updatedOrder.shippingAddress,
+          items: updatedOrder.items || [],
+        }).catch((emailErr) => {
+          console.error('⚠️ Async Order Status Email Error:', emailErr.message || emailErr);
         });
       }
 

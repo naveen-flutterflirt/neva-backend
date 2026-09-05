@@ -413,6 +413,10 @@ class AuthController {
       const mailRes = await sendOtpEmail(normalizedEmail, otp);
       if (!mailRes.success) {
         console.error('❌ Email dispatch notice:', mailRes.error);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send OTP email. Please try again later.',
+        });
       }
 
       return res.status(200).json({

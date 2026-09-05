@@ -122,6 +122,9 @@ class OrderRepository {
     if (trackingNumber) {
       updateData.trackingNumber = trackingNumber;
     }
+    if (orderStatus === 'delivered') {
+      updateData.paymentStatus = 'paid';
+    }
 
     await order.update(updateData);
     return await this.getOrderById(order.id);
