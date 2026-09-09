@@ -50,7 +50,7 @@ class ShippingController {
       } else {
         // Fallback Strategy: Use flat rate policy if Shiprocket API fails or pincode is not serviceable
         console.warn('⚠️ Shiprocket rate query failed, using fallback policy.');
-        const fallbackFee = 0; // parsedSubtotal >= 300 || parsedSubtotal === 0 ? 0 : 50;
+        const fallbackFee = parsedSubtotal >= 300 || parsedSubtotal === 0 ? 0 : 50;
         
         return res.status(200).json({
           success: true,
@@ -62,7 +62,7 @@ class ShippingController {
     } catch (error) {
       console.error('Error in shipping rate controller:', error);
       const parsedSubtotal = parseFloat(req.query.subtotal || '0');
-      const fallbackFee = 0; // parsedSubtotal >= 300 || parsedSubtotal === 0 ? 0 : 50;
+      const fallbackFee = parsedSubtotal >= 300 || parsedSubtotal === 0 ? 0 : 50;
 
       return res.status(200).json({
         success: true,
