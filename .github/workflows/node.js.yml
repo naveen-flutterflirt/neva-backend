@@ -1,4 +1,4 @@
-name: Node.js CI
+name: Node.js CI (Backend Deploy)
 
 on:
   push:
@@ -20,10 +20,21 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
+          cache-dependency-path: './neva-backend/package-lock.json'
 
-      - run: npm ci
+      - name: Install Backend Dependencies
+        working-directory: ./neva-backend
+        run: npm ci
 
       - name: Create production environment file
+        working-directory: ./neva-backend
         run: |
-          touch .env
-          echo "${{ secrets.PROD_ENV_FILE }}" > .env
+          cat << 'EOF' > .env
+          ${{ secrets.PROD_ENV_FILE }}
+          EOF
+
+      - name: Restart Backend Server
+        working-directory: ./neva-backend
+        run: |
+          # PM2 server ko restart karne ki command (taaki nayi .env keys load ho jayein)
+          pm2 restart all
