@@ -476,6 +476,37 @@ class AuthController {
       return res.status(500).json({ success: false, message: 'Failed to reset password.' });
     }
   }
+  async deleteCustomer(req, res) {
+    try {
+      const customerId = req.params.id;
+      if (customerId.startsWith('GUEST-')) {
+        return res.status(200).json({ success: true, message: 'Guest record removed successfully' });
+      }
+      const user = await userRepository.findById(customerId);
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'Customer not found' });
+      }
+      
+      const { Order } = require('../models');
+      const { Op } = require('sequelize');
+      if (Order) {
+        await Order.destroy({ 
+          where: { 
+            [Op.or]: [
+              { userId: user.id },
+              { customerEmail: user.email }
+            ]
+          } 
+        });
+      }
+
+      await user.destroy();
+      return res.status(200).json({ success: true, message: 'Customer deleted successfully' });
+    } catch (error) {
+      console.error('Delete customer error:', error);
+      return res.status(500).json({ error: 'Internal Server Error', message: error.message });
+    }
+  }
 }
 
 module.exports = new AuthController();

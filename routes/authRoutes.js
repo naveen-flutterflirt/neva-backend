@@ -12,5 +12,6 @@ router.post('/reset-password', authController.resetPassword);
 router.get('/me', authenticateUser, authController.getMe);
 router.put('/profile', authenticateUser, authController.updateProfile);
 router.get('/customers', authController.getCustomers);
+router.delete('/customers/:id', authController.deleteCustomer);
 
 module.exports = router;
