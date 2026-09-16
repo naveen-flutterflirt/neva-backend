@@ -42,6 +42,13 @@ class OrderController {
         }
       }
 
+      const hasIotKit = items.some(item => item.isIoT === true);
+      let generatedIotKitCode = null;
+      if (hasIotKit) {
+        const gen4 = () => Math.floor(1000 + Math.random() * 9000).toString();
+        generatedIotKitCode = `${gen4()}-${gen4()}-${gen4()}`;
+      }
+
       const orderData = {
         orderNumber: generatedOrderNumber,
         userId: resolvedUserId,
@@ -67,6 +74,7 @@ class OrderController {
 
         orderStatus: 'pending',
         notes: notes || null,
+        iotKitCode: generatedIotKitCode,
       };
 
       const itemsData = items.map(item => ({
@@ -123,6 +131,27 @@ class OrderController {
       });
     } catch (error) {
       console.error('Get Orders Controller Error:', error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to fetch orders.',
+      });
+    }
+  }
+
+  // GET /api/orders/public/all - Get all orders without any authentication or filters
+  async getPublicOrders(req, res) {
+    try {
+      const result = await orderRepository.getAllOrders({
+        page: 1,
+        limit: 100 // return a bunch by default
+      });
+      return res.status(200).json({
+        success: true,
+        message: 'Orders fetched successfully',
+        data: result.orders,
+      });
+    } catch (error) {
+      console.error('Public Get Orders Error:', error);
       return res.status(500).json({
         success: false,
         message: error.message || 'Failed to fetch orders.',

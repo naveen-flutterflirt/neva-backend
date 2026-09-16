@@ -24,6 +24,8 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const socialPostRoutes = require('./routes/socialPostRoutes');
 const shippingRoutes = require('./routes/shippingRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+const iotKitRoutes = require('./routes/iotKitRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
@@ -33,6 +35,8 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/social-posts', socialPostRoutes);
 app.use('/api/shipping', shippingRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/iot-kits', iotKitRoutes);
 
 // Test APIs
 

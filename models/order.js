@@ -138,6 +138,13 @@ const Order = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    
+    // IoT Kit Specific
+    iotKitCode: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      field: 'iot_kit_code',
+    },
   },
   {
     tableName: 'orders',
