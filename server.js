@@ -1,21 +1,21 @@
-
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./config/database');
 const config = require('./config');
 const app = express();
 const PORT = config.port;
-
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
+app.use(express.json({
+	limit: '50mb'
+}));
+app.use(express.urlencoded({
+	limit: '50mb',
+	extended: true
+}));
 // Load Models & Associations
-
 require('./models');
 // Routes
-
 const authRoutes = require('./routes/authRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const productRoutes = require('./routes/productRoutes');
@@ -26,7 +26,6 @@ const socialPostRoutes = require('./routes/socialPostRoutes');
 const shippingRoutes = require('./routes/shippingRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const iotKitRoutes = require('./routes/iotKitRoutes');
-
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
@@ -37,72 +36,59 @@ app.use('/api/social-posts', socialPostRoutes);
 app.use('/api/shipping', shippingRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/iot-kits', iotKitRoutes);
-
 // Test APIs
-
 app.get('/api/test', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Backend is working'
-  });
+	res.json({
+		success: true,
+		message: 'Backend is working'
+	});
 });
-
 app.post('/api/test', (req, res) => {
-  res.json({
-    success: true,
-    message: 'POST API is working',
-    data: req.body
-  });
+	res.json({
+		success: true,
+		message: 'POST API is working',
+		data: req.body
+	});
 });
-
-
 // Error Handling
-
 // Invalid JSON payload handler
 app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return res.status(400).json({
-      error: 'Bad Request',
-      message: 'Invalid JSON payload format.'
-    });
-  }
-
-  next(err);
+	if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+		return res.status(400).json({
+			error: 'Bad Request',
+			message: 'Invalid JSON payload format.'
+		});
+	}
+	next(err);
 });
-
 // Start Server
-
 const startServer = async (retries = 5) => {
-  while (retries > 0) {
-    try {
-      await sequelize.authenticate();
-      console.log('Database connected successfully.');
-
-      await sequelize.sync();
-      console.log('Database models synced.');
-
-      app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT} `);
-      });
-      
-      // Successfully connected, exit the retry loop
-      break;
-    } catch (error) {
-      console.error(`Unable to connect to the database. Retries left: ${retries - 1}`);
-      console.error('Error detail:', error.message);
-      
-      retries -= 1;
-      
-      if (retries === 0) {
-        console.error('All retries failed. Exiting...');
-        process.exit(1);
-      }
-      
-      // Wait for 5 seconds before retrying to give the database time to wake up
-      console.log('Waiting 5 seconds before retrying...');
-      await new Promise(resolve => setTimeout(resolve, 5000));
-    }
-  }
+	while (retries > 0) {
+		try {
+			await sequelize.authenticate();
+			console.log('Database connected successfully.');
+			await sequelize.sync();
+			console.log('Database models synced.');
+			app.listen(PORT, () => {
+				console.log(`Server is running on port ${PORT} `);
+			});
+			// Successfully connected, exit the retry loop
+			break;
+		} catch (error) {
+			console.error(`Unable to connect to the database. Retries left: ${retries - 1}`);
+			console.error('Error detail:', error.message);
+			retries -= 1;
+			if (retries === 0) {
+				console.error('All retries failed. Exiting...');
+				process.exit(1);
+			}
+			// Wait for 5 seconds before retrying to give the database time to wake up
+			console.log('Waiting 5 seconds before retrying...');
+			await new Promise(resolve => setTimeout(resolve, 5000));
+		}
+	}
 };
-
 startServer();
+
+// Export the Express API for Vercel
+module.exports = app;
