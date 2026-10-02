@@ -78,6 +78,13 @@ class OrderController {
 				selectedMaterial: item.selectedMaterial || null,
 			}));
 			const createdOrder = await orderRepository.createOrder(orderData, itemsData);
+			
+			// 🚨 Send email notification to Admin about the new order (non-blocking)
+			const { sendAdminNewOrderEmail } = require('../utils/mailer');
+			sendAdminNewOrderEmail(createdOrder).catch((emailErr) => {
+				console.error('⚠️ Async Admin New Order Email Error:', emailErr.message || emailErr);
+			});
+
 			return res.status(201).json({
 				success: true,
 				message: 'Order created successfully! 📦',

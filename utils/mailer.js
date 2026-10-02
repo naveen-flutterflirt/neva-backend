@@ -296,7 +296,164 @@ const sendOrderStatusEmail = async (toEmail, orderDetails) => {
 		};
 	}
 };
+
+/**
+ * Send New Order Notification Email to Admin via Nodemailer SMTP
+ */
+const sendAdminNewOrderEmail = async (orderDetails) => {
+	const {
+		orderNumber = 'N/A',
+		customerName = 'Customer',
+		customerEmail = 'N/A',
+		customerPhone = 'N/A',
+		totalAmount = 0,
+		shippingAddress = '',
+		items = [],
+	} = orderDetails || {};
+
+	// Admin email from env, fallback to SMTP user if available
+	const adminEmail = process.env.ADMIN_EMAIL_NOTIFICATION || process.env.SMTP_USER || process.env.EMAIL_USER;
+	if (!adminEmail) {
+		console.warn('⚠️ Admin Email not configured, skipping new order notification.');
+		return { success: false, error: 'No admin email configured' };
+	}
+
+	const itemsListHtml = Array.isArray(items) && items.length > 0 ? items.map(item => `
+			<tr style="border-bottom: 1px solid #f1f5f9;">
+				<td style="padding: 10px 0; color: #334155; font-size: 13px;">
+					<strong>${item.productName || item.name || 'Product'}</strong> (x${item.quantity || 1})
+				</td>
+				<td style="padding: 10px 0; text-align: right; font-weight: 700; color: #0f172a; font-size: 13px;">
+					₹${Number(item.totalPrice || item.unitPrice * item.quantity || item.price || 0).toLocaleString()}
+				</td>
+			</tr>
+		`).join('') : `
+			<tr style="border-bottom: 1px solid #f1f5f9;">
+				<td style="padding: 10px 0; color: #334155; font-size: 13px;">Order Items</td>
+				<td style="padding: 10px 0; text-align: right; font-weight: 700; color: #0f172a; font-size: 13px;">₹${Number(totalAmount).toLocaleString()}</td>
+			</tr>
+		`;
+
+	const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>New Order Alert</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; -webkit-font-smoothing: antialiased;">
+	<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; padding: 30px 15px;">
+		<tr>
+			<td align="center">
+				<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 540px; background-color: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
+					
+					<!-- Header -->
+					<tr>
+						<td align="center" style="background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%); padding: 32px 25px; color: #ffffff;">
+							<div style="font-size: 24px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; color: #ffffff;">🚨 NEW ORDER</div>
+							<div style="margin-top: 6px; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.9; text-transform: uppercase; color: #ffffff;">Action Required</div>
+						</td>
+					</tr>
+
+					<!-- Content Body -->
+					<tr>
+						<td style="padding: 32px 28px;">
+							<div style="font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">
+								Hello Admin,
+							</div>
+							<div style="font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 20px;">
+								A new order has been placed on your store. Please review the details below.
+							</div>
+
+							<!-- Customer Info -->
+							<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px; background-color: #f1f5f9; padding: 15px; border-radius: 10px;">
+								<tr>
+									<td style="padding-bottom: 8px; font-size: 13px;"><strong style="color: #0f172a;">Customer:</strong> ${customerName}</td>
+								</tr>
+								<tr>
+									<td style="padding-bottom: 8px; font-size: 13px;"><strong style="color: #0f172a;">Email:</strong> ${customerEmail}</td>
+								</tr>
+								<tr>
+									<td style="font-size: 13px;"><strong style="color: #0f172a;">Phone:</strong> ${customerPhone}</td>
+								</tr>
+							</table>
+
+							<!-- Order Summary Table -->
+							<div style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 24px; margin-bottom: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;">
+								Order Details (#${orderNumber})
+							</div>
+
+							<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
+								${itemsListHtml}
+								<tr>
+									<td style="padding: 12px 0; font-weight: 800; color: #0f172a; font-size: 14px;">Total Amount</td>
+									<td style="padding: 12px 0; text-align: right; font-weight: 900; font-size: 16px; color: #0ea5e9;">
+										₹${Number(totalAmount).toLocaleString()}
+									</td>
+								</tr>
+							</table>
+
+							${shippingAddress ? `
+							<!-- Address -->
+							<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin-top: 10px;">
+								<tr>
+									<td style="padding: 14px 16px; font-size: 12px; color: #475569; line-height: 1.5;">
+										<strong style="color: #0f172a;">Shipping Address:</strong><br>
+										${shippingAddress}
+									</td>
+								</tr>
+							</table>
+							` : ''}
+
+						</td>
+					</tr>
+
+					<!-- Footer -->
+					<tr>
+						<td align="center" style="background-color: #f1f5f9; border-top: 1px solid #e2e8f0; padding: 20px 25px;">
+							<div style="font-size: 12px; color: #64748b;">
+								&copy; ${new Date().getFullYear()} NIVASHOP. Admin Notification.
+							</div>
+						</td>
+					</tr>
+
+				</table>
+			</td>
+		</tr>
+	</table>
+</body>
+</html>
+	`;
+
+	const transporter = createTransporter();
+	if (transporter) {
+		try {
+			let fromEmail = (process.env.SMTP_FROM || process.env.SMTP_USER || process.env.EMAIL_USER || 'no-reply@nivashop.in').trim();
+			const fromName = process.env.EMAIL_FROM_NAME || 'NIVASHOP System';
+			let fromHeader = fromEmail.includes('<') ? fromEmail : `"${fromName}" <${fromEmail}>`;
+			
+			const info = await transporter.sendMail({
+				from: fromHeader,
+				to: adminEmail,
+				subject: `🚨 New Order Received: #${orderNumber} for ₹${Number(totalAmount).toLocaleString()}`,
+				html: htmlContent,
+			});
+			
+			console.log(`\n========================================\n📧 [ADMIN NEW ORDER EMAIL SENT SUCCESS]\nMessage ID: ${info.messageId}\nRecipient (Admin): ${adminEmail}\nOrder: ${orderNumber}\n========================================\n`);
+			return { success: true, messageId: info.messageId };
+		} catch (err) {
+			console.error('❌ Nodemailer Admin Notification Error:', err.message || err);
+			return { success: false, error: err.message || 'SMTP sending failed' };
+		}
+	} else {
+		console.log(`\n========================================\n📧 [DEMO MODE - ADMIN NOTIFICATION LOGGED]\nRecipient (Admin): ${adminEmail}\nOrder: ${orderNumber}\nAmount: ₹${totalAmount}\n========================================\n`);
+		return { success: true, demo: true };
+	}
+};
+
 module.exports = {
 	sendOtpEmail,
 	sendOrderStatusEmail,
+	sendAdminNewOrderEmail,
 };
