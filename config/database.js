@@ -7,6 +7,7 @@ if (!config.databaseUrl) {
 
 const sequelize = new Sequelize(config.databaseUrl, {
   dialect: 'postgres',
+  dialectModule: require('pg'),
   dialectOptions: {
     ssl: {
       require: true,
