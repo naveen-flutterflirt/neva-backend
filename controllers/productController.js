@@ -2,6 +2,7 @@ const { PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { s3Client, bucketName } = require('../config/s3Config');
 const productRepository = require('../repositories/productRepository');
 const crypto = require('crypto');
+const apiCache = require('../utils/cache');
 
 const region = process.env.AWS_REGION || 'us-east-1';
 
@@ -67,8 +68,19 @@ const formatProduct = (product) => {
 class ProductController {
   async getProducts(req, res) {
     try {
+      const cacheKey = 'products_all';
+      const cached = apiCache.get(cacheKey);
+      if (cached) {
+        return res.status(200).json({
+          success: true,
+          data: cached,
+        });
+      }
+
       const products = await productRepository.findAll();
       const formattedProducts = (products || []).map(formatProduct);
+      apiCache.set(cacheKey, formattedProducts, 120 * 1000); // cache for 2 minutes
+
       return res.status(200).json({
         success: true,
         data: formattedProducts,
@@ -84,8 +96,19 @@ class ProductController {
 
   async getNewArrivals(req, res) {
     try {
+      const cacheKey = 'products_new_arrivals';
+      const cached = apiCache.get(cacheKey);
+      if (cached) {
+        return res.status(200).json({
+          success: true,
+          data: cached,
+        });
+      }
+
       const products = await productRepository.findNewArrivals();
       const formattedProducts = (products || []).map(formatProduct);
+      apiCache.set(cacheKey, formattedProducts, 120 * 1000); // cache for 2 minutes
+
       return res.status(200).json({
         success: true,
         data: formattedProducts,
@@ -258,6 +281,8 @@ class ProductController {
       await productRepository.addImages(mediaToSave);
 
       const freshProduct = await productRepository.findById(product.id);
+
+      apiCache.clearPattern('products_');
 
       return res.status(201).json({
         success: true,
@@ -446,6 +471,8 @@ class ProductController {
 
       const finalProduct = await productRepository.findById(id);
 
+      apiCache.clearPattern('products_');
+
       return res.status(200).json({
         success: true,
         message: 'Product updated successfully',
@@ -478,6 +505,8 @@ class ProductController {
 
       // Delete from DB
       await productRepository.delete(id);
+
+      apiCache.clearPattern('products_');
 
       return res.status(200).json({
         success: true,

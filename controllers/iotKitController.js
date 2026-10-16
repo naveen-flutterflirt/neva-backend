@@ -2,13 +2,18 @@ const IotKit = require('../models/iotKit');
 const { PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { s3Client, bucketName } = require('../config/s3Config');
 const crypto = require('crypto');
+const apiCache = require('../utils/cache');
 
 const region = process.env.AWS_REGION;
 
 // Helper to upload a single file to AWS S3
 const uploadToS3 = async (file) => {
   const uniqueSuffix = Date.now() + '-' + crypto.randomBytes(4).toString('hex');
-  const uniqueKey = `iot-kits/${uniqueSuffix}-${file.originalname.replace(/\s+/g, '-')}`;
+  // Sanitize original filename (remove quotes, brackets, and special characters)
+  const safeName = (file.originalname || 'file')
+    .replace(/[^a-zA-Z0-9.-]/g, '_')
+    .replace(/_+/g, '_');
+  const uniqueKey = `iot-kits/${uniqueSuffix}-${safeName}`;
 
   const uploadParams = {
     Bucket: bucketName,
@@ -61,6 +66,15 @@ exports.createIotKit = async (req, res) => {
     const parsedProjects = projects ? (typeof projects === 'string' ? JSON.parse(projects) : projects) : [];
     const parsedFaqs = faqs ? (typeof faqs === 'string' ? JSON.parse(faqs) : faqs) : [];
 
+    // Process ebook PDF if uploaded
+    let ebookUrl = null;
+    if (req.files && req.files.length > 0) {
+      const ebookFile = req.files.find(f => f.fieldname === 'ebook');
+      if (ebookFile) {
+        ebookUrl = await uploadToS3(ebookFile);
+      }
+    }
+
     const newKit = await IotKit.create({
       name,
       description,
@@ -72,7 +86,10 @@ exports.createIotKit = async (req, res) => {
       whatsIncluded: parsedWhatsIncluded,
       projects: parsedProjects,
       faqs: parsedFaqs,
+      ebookUrl,
     });
+
+    apiCache.delete('iot_kits_all');
 
     res.status(201).json({
       success: true,
@@ -88,9 +105,17 @@ exports.createIotKit = async (req, res) => {
 // Get all IoT Kits (GET /api/iot-kits)
 exports.getAllIotKits = async (req, res) => {
   try {
+    const cacheKey = 'iot_kits_all';
+    const cached = apiCache.get(cacheKey);
+    if (cached) {
+      return res.status(200).json({ success: true, count: cached.length, data: cached });
+    }
+
     const kits = await IotKit.findAll({
       order: [['createdAt', 'DESC']],
     });
+    apiCache.set(cacheKey, kits, 120 * 1000); // cache for 2 minutes
+
     res.status(200).json({ success: true, count: kits.length, data: kits });
   } catch (error) {
     console.error('Error fetching IoT Kits:', error);
@@ -139,6 +164,7 @@ exports.deleteIotKit = async (req, res) => {
     }
 
     await kit.destroy();
+    apiCache.delete('iot_kits_all');
     res.status(200).json({ success: true, message: 'IoT Kit deleted successfully' });
   } catch (error) {
     console.error('Error deleting IoT Kit:', error);
@@ -214,6 +240,28 @@ exports.updateIotKit = async (req, res) => {
     const parsedProjects = projects ? (typeof projects === 'string' ? JSON.parse(projects) : projects) : [];
     const parsedFaqs = faqs ? (typeof faqs === 'string' ? JSON.parse(faqs) : faqs) : [];
 
+    // Handle ebook PDF
+    let ebookUrl = kit.ebookUrl;
+    // Check if user requested to remove existing ebook
+    if (req.body.removeEbook === 'true') {
+      if (kit.ebookUrl && kit.ebookUrl.includes('amazonaws.com')) {
+        const oldKey = kit.ebookUrl.split('.com/')[1];
+        await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: oldKey })).catch(e => console.log('S3 delete err:', e));
+      }
+      ebookUrl = null;
+    }
+
+    if (req.files && req.files.length > 0) {
+      const ebookFile = req.files.find(f => f.fieldname === 'ebook');
+      if (ebookFile) {
+        if (kit.ebookUrl && kit.ebookUrl.includes('amazonaws.com')) {
+          const oldKey = kit.ebookUrl.split('.com/')[1];
+          await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: oldKey })).catch(e => console.log('S3 delete err:', e));
+        }
+        ebookUrl = await uploadToS3(ebookFile);
+      }
+    }
+
     await kit.update({
       name: name || kit.name,
       description: description || kit.description,
@@ -225,7 +273,10 @@ exports.updateIotKit = async (req, res) => {
       whatsIncluded: parsedWhatsIncluded,
       projects: parsedProjects,
       faqs: parsedFaqs,
+      ebookUrl,
     });
+
+    apiCache.delete('iot_kits_all');
 
     res.status(200).json({ success: true, message: 'IoT Kit updated successfully', kit });
   } catch (error) {

@@ -8,14 +8,26 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit per file
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit per file for eBooks & images
 });
 
+const handleUpload = (req, res, next) => {
+  upload.any()(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ success: false, message: 'File is too large. Maximum file size allowed is 50MB.' });
+      }
+      return res.status(400).json({ success: false, message: err.message });
+    }
+    next();
+  });
+};
+
 // Routes
-router.post('/', upload.any(), createIotKit); // upload.any() allows dynamic field names like 'components_0_image'
+router.post('/', handleUpload, createIotKit);
 router.get('/', getAllIotKits);
 router.get('/:id', getIotKitById);
 router.delete('/:id', deleteIotKit);
-router.put('/:id', upload.any(), updateIotKit);
+router.put('/:id', handleUpload, updateIotKit);
 
 module.exports = router;

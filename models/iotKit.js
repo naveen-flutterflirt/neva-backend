@@ -58,6 +58,11 @@ const IotKit = sequelize.define('IotKit', {
     allowNull: true,
     defaultValue: [],
   },
+  ebookUrl: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    field: 'ebook_url',
+  },
 }, {
   tableName: 'iot_kits',
   timestamps: true,

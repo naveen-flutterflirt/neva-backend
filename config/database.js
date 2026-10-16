@@ -16,10 +16,10 @@ const sequelize = new Sequelize(config.databaseUrl, {
   },
   logging: false, // Set to console.log to see query logs
   pool: {
-    max: 5,
-    min: 0,
-    acquire: 30000,
-    idle: 10000
+    max: 10,
+    min: 2,
+    acquire: 60000, // 60 seconds
+    idle: 30000
   }
 });
 

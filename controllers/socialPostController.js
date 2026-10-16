@@ -2,6 +2,7 @@ const { PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { s3Client, bucketName } = require('../config/s3Config');
 const crypto = require('crypto');
 const SocialPost = require('../models/socialPost');
+const apiCache = require('../utils/cache');
 
 const region = process.env.AWS_REGION || 'us-east-1';
 
@@ -42,9 +43,21 @@ const deleteFromS3 = async (fileUrl) => {
 // Get all active social posts (GET)
 exports.getSocialPosts = async (req, res) => {
   try {
+    const cacheKey = 'social_posts_all';
+    const cached = apiCache.get(cacheKey);
+    if (cached) {
+      return res.status(200).json({
+        success: true,
+        message: 'Social posts fetched successfully',
+        data: cached,
+      });
+    }
+
     const posts = await SocialPost.findAll({
       order: [['createdAt', 'DESC']],
     });
+    apiCache.set(cacheKey, posts, 180 * 1000); // 3 minutes cache
+
     return res.status(200).json({
       success: true,
       message: 'Social posts fetched successfully',
@@ -82,6 +95,8 @@ exports.createSocialPost = async (req, res) => {
       title: title,
       isActive: true,
     });
+
+    apiCache.delete('social_posts_all');
 
     return res.status(201).json({
       success: true,
@@ -122,6 +137,8 @@ exports.updateSocialPost = async (req, res) => {
 
     await post.save();
 
+    apiCache.delete('social_posts_all');
+
     return res.status(200).json({
       success: true,
       message: 'Social post updated successfully',
@@ -151,6 +168,8 @@ exports.deleteSocialPost = async (req, res) => {
     }
 
     await post.destroy();
+
+    apiCache.delete('social_posts_all');
 
     return res.status(200).json({
       success: true,

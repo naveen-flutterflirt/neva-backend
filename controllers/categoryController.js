@@ -1,5 +1,6 @@
 const categoryRepository = require('../repositories/categoryRepository');
 const Product = require('../models/product');
+const apiCache = require('../utils/cache');
 
 // Helper to generate slug from name
 const generateSlug = (name) => {
@@ -14,7 +15,18 @@ const generateSlug = (name) => {
 class CategoryController {
   async getCategories(req, res) {
     try {
+      const cacheKey = 'categories_all';
+      const cached = apiCache.get(cacheKey);
+      if (cached) {
+        return res.status(200).json({
+          success: true,
+          data: cached,
+        });
+      }
+
       const categories = await categoryRepository.findAll();
+      apiCache.set(cacheKey, categories, 300 * 1000); // 5 minutes cache
+
       return res.status(200).json({
         success: true,
         data: categories,
@@ -81,6 +93,8 @@ class CategoryController {
       parentId: parentId || null
     });
 
+    apiCache.delete('categories_all');
+
     return res.status(201).json({
       success: true,
       message: 'Category created successfully',
@@ -134,6 +148,8 @@ class CategoryController {
 
     const updated = await categoryRepository.update(id, updateData);
 
+    apiCache.delete('categories_all');
+
     return res.status(200).json({
       success: true,
       message: 'Category updated successfully',
@@ -162,6 +178,10 @@ class CategoryController {
         message: 'Category not found',
       });
     }
+
+    apiCache.delete('categories_all');
+    apiCache.clearPattern('products_');
+
     return res.status(200).json({
       success: true,
       message: 'Category and associated products deleted successfully',
