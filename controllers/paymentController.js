@@ -24,6 +24,20 @@ class PaymentController {
 					message: 'Valid order amount is required.',
 				});
 			}
+
+			const { isValidPhone, isValidEmail } = require('../utils/validator');
+			if (notes && notes.phone && !isValidPhone(notes.phone)) {
+				return res.status(400).json({
+					success: false,
+					message: 'Please provide a valid 10-digit mobile number.',
+				});
+			}
+			if (notes && notes.email && !isValidEmail(notes.email)) {
+				return res.status(400).json({
+					success: false,
+					message: 'Please provide a valid email address.',
+				});
+			}
 			const instance = getRazorpayInstance();
 			const amountInPaise = Math.round(Number(amount) * 100);
 			const options = {

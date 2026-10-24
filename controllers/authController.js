@@ -333,13 +333,68 @@ class AuthController {
         return res.status(404).json({ success: false, message: 'User not found' });
       }
 
+      const { isValidPhone, isValidEmail, isValidPincode, normalizePhone } = require('../utils/validator');
+
       const oldEmail = user.email;
       const updateData = {};
-      if (name) updateData.name = name.trim();
-      if (email) updateData.email = email.trim().toLowerCase();
-      if (whatsappNumber) updateData.whatsappNumber = whatsappNumber.trim();
-      if (contactNumber) updateData.contactNumber = contactNumber.trim();
-      if (address !== undefined) updateData.address = address.trim();
+      if (name !== undefined) {
+        if (!name || name.trim().length < 2) {
+          return res.status(400).json({ success: false, message: 'Name must be at least 2 characters.' });
+        }
+        updateData.name = name.trim();
+      }
+
+      if (email !== undefined) {
+        if (!isValidEmail(email)) {
+          return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
+        }
+        const normalizedEmail = email.trim().toLowerCase();
+        // Check uniqueness if email changed
+        if (normalizedEmail !== oldEmail) {
+          const existing = await userRepository.findByEmail(normalizedEmail);
+          if (existing && existing.id !== user.id) {
+            return res.status(409).json({ success: false, message: 'Email address already in use by another account.' });
+          }
+        }
+        updateData.email = normalizedEmail;
+      }
+
+      if (whatsappNumber !== undefined && whatsappNumber !== '') {
+        if (!isValidPhone(whatsappNumber)) {
+          return res.status(400).json({ success: false, message: 'WhatsApp number must be a valid 10-digit mobile number.' });
+        }
+        updateData.whatsappNumber = normalizePhone(whatsappNumber);
+      }
+
+      if (contactNumber !== undefined && contactNumber !== '') {
+        if (!isValidPhone(contactNumber)) {
+          return res.status(400).json({ success: false, message: 'Contact number must be a valid 10-digit mobile number.' });
+        }
+        updateData.contactNumber = normalizePhone(contactNumber);
+      }
+
+      if (address !== undefined) {
+        const trimmedAddress = typeof address === 'string' ? address.trim() : JSON.stringify(address);
+        // If address is JSON array of saved addresses, validate each pincode
+        if (trimmedAddress.startsWith('[') || trimmedAddress.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(trimmedAddress);
+            if (Array.isArray(parsed)) {
+              for (const addr of parsed) {
+                if (addr.pincode && !isValidPincode(addr.pincode)) {
+                  return res.status(400).json({
+                    success: false,
+                    message: `Invalid 6-digit pincode "${addr.pincode}". Pincode must be exactly 6 digits.`,
+                  });
+                }
+              }
+            }
+          } catch (e) {
+            // Not JSON or parse error, let text address save
+          }
+        }
+        updateData.address = trimmedAddress;
+      }
 
       await user.update(updateData);
 

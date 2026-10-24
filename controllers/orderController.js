@@ -17,12 +17,42 @@ class OrderController {
 					message: 'Order items are required.',
 				});
 			}
+const { isValidPhone, isValidEmail, validateAddressString, normalizePhone } = require('../utils/validator');
+
 			if (!customer || !customer.name || !customer.phone || !customer.address) {
 				return res.status(400).json({
 					success: false,
-					message: 'Customer name, phone, and address are required.',
+					message: 'Customer name, phone number, and address are required.',
 				});
 			}
+
+			// Validate 10-digit phone number
+			if (!isValidPhone(customer.phone)) {
+				return res.status(400).json({
+					success: false,
+					message: 'Please provide a valid 10-digit mobile number.',
+				});
+			}
+
+			// Validate email format if provided
+			if (customer.email && !isValidEmail(customer.email)) {
+				return res.status(400).json({
+					success: false,
+					message: 'Please provide a valid email address.',
+				});
+			}
+
+			// Validate address has 6-digit pincode
+			const addrCheck = validateAddressString(customer.address);
+			if (!addrCheck.isValid) {
+				return res.status(400).json({
+					success: false,
+					message: addrCheck.message || 'Please provide a valid delivery address with a 6-digit pincode.',
+				});
+			}
+
+			const normalizedCustomerPhone = normalizePhone(customer.phone);
+			const normalizedCustomerEmail = customer.email ? customer.email.trim().toLowerCase() : null;
 			const generatedOrderNumber = orderId || `NIVA-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 			let resolvedUserId = req.user ? req.user.id : (req.body.userId || null);
 			if (!resolvedUserId && (customer.email || customer.phone)) {
@@ -45,10 +75,10 @@ class OrderController {
 			const orderData = {
 				orderNumber: generatedOrderNumber,
 				userId: resolvedUserId,
-				customerName: customer.name,
-				customerEmail: customer.email || null,
-				customerPhone: customer.phone,
-				shippingAddress: customer.address,
+				customerName: customer.name.trim(),
+				customerEmail: normalizedCustomerEmail,
+				customerPhone: normalizedCustomerPhone,
+				shippingAddress: customer.address.trim(),
 				addressType: customer.addressType || 'home',
 				subtotal: pricing?.subtotal || 0,
 				discountAmount: pricing?.discount || 0,

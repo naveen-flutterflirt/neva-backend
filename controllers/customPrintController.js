@@ -79,6 +79,26 @@ exports.createCustomPrintRequest = async (req, res) => {
       });
     }
 
+    const { isValidPhone, isValidEmail, isValidPincode, normalizePhone } = require('../utils/validator');
+
+    if (!isValidPhone(customerPhone)) {
+      return res.status(400).json({
+        message: 'Please provide a valid 10-digit mobile number.',
+      });
+    }
+
+    if (!isValidEmail(customerEmail)) {
+      return res.status(400).json({
+        message: 'Please provide a valid email address.',
+      });
+    }
+
+    if (zipCode && !isValidPincode(zipCode)) {
+      return res.status(400).json({
+        message: 'Please provide a valid 6-digit pincode.',
+      });
+    }
+
     const selectedHeight = height || quality || '6 Inch';
 
     // Upload 3D file and reference images to AWS S3
@@ -93,9 +113,9 @@ exports.createCustomPrintRequest = async (req, res) => {
 
     const newRequest = await CustomPrintRequest.create({
       requestId,
-      customerName,
-      customerEmail,
-      customerPhone,
+      customerName: customerName.trim(),
+      customerEmail: customerEmail.trim().toLowerCase(),
+      customerPhone: normalizePhone(customerPhone),
       addressLine1: addressLine1 || '',
       addressLine2: addressLine2 || '',
       city: city || '',

@@ -9,7 +9,8 @@ class ShippingController {
     try {
       const { pincode, cod, subtotal, weight } = req.query;
 
-      if (!pincode || String(pincode).trim().length !== 6) {
+      const { isValidPincode } = require('../utils/validator');
+      if (!isValidPincode(pincode)) {
         return res.status(400).json({
           success: false,
           message: 'A valid 6-digit destination pincode is required.',
