@@ -78,7 +78,14 @@ class ProductController {
       }
 
       const products = await productRepository.findAll();
-      const formattedProducts = (products || []).map(formatProduct);
+      // Filter to only include IoT products (commenting out 3D products)
+      const filtered = (products || []).filter((p) => {
+        const catName = typeof p.category === 'object' && p.category !== null ? (p.category.name || '') : (p.category || '');
+        const catSlug = typeof p.category === 'object' && p.category !== null ? (p.category.slug || '') : '';
+        const isIoT = p.isIoT || catName.toLowerCase().includes('iot') || catSlug.toLowerCase().includes('iot');
+        return isIoT;
+      });
+      const formattedProducts = filtered.map(formatProduct);
       apiCache.set(cacheKey, formattedProducts, 120 * 1000); // cache for 2 minutes
 
       return res.status(200).json({
@@ -106,7 +113,14 @@ class ProductController {
       }
 
       const products = await productRepository.findNewArrivals();
-      const formattedProducts = (products || []).map(formatProduct);
+      // Filter to only include IoT products (commenting out 3D products)
+      const filtered = (products || []).filter((p) => {
+        const catName = typeof p.category === 'object' && p.category !== null ? (p.category.name || '') : (p.category || '');
+        const catSlug = typeof p.category === 'object' && p.category !== null ? (p.category.slug || '') : '';
+        const isIoT = p.isIoT || catName.toLowerCase().includes('iot') || catSlug.toLowerCase().includes('iot');
+        return isIoT;
+      });
+      const formattedProducts = filtered.map(formatProduct);
       apiCache.set(cacheKey, formattedProducts, 120 * 1000); // cache for 2 minutes
 
       return res.status(200).json({
@@ -117,6 +131,41 @@ class ProductController {
       return res.status(500).json({
         success: false,
         message: 'Failed to retrieve new arrivals',
+        error: error.message,
+      });
+    }
+  }
+
+  async getTrendingProducts(req, res) {
+    try {
+      const cacheKey = 'products_trending';
+      const cached = apiCache.get(cacheKey);
+      if (cached) {
+        return res.status(200).json({
+          success: true,
+          data: cached,
+        });
+      }
+
+      const products = await productRepository.findTrending();
+      // Filter to only include IoT products
+      const filtered = (products || []).filter((p) => {
+        const catName = typeof p.category === 'object' && p.category !== null ? (p.category.name || '') : (p.category || '');
+        const catSlug = typeof p.category === 'object' && p.category !== null ? (p.category.slug || '') : '';
+        const isIoT = p.isIoT || catName.toLowerCase().includes('iot') || catSlug.toLowerCase().includes('iot');
+        return isIoT;
+      });
+      const formattedProducts = filtered.map(formatProduct);
+      apiCache.set(cacheKey, formattedProducts, 120 * 1000); // cache for 2 minutes
+
+      return res.status(200).json({
+        success: true,
+        data: formattedProducts,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve trending products',
         error: error.message,
       });
     }
@@ -157,6 +206,7 @@ class ProductController {
         stock,
         status,
         isNewArrival,
+        isTrending,
         primaryImageIndex,
         materialVariants,
         colorOptions,
@@ -207,6 +257,7 @@ class ProductController {
         stock: stock || 0,
         status: status || 'draft',
         isNewArrival: isNewArrival === 'true' || isNewArrival === true,
+        isTrending: isTrending === 'true' || isTrending === true,
         slug,
         materialVariants: parseJSONField(materialVariants, []),
         colorOptions: parseJSONField(colorOptions, []),
@@ -356,6 +407,9 @@ class ProductController {
       if (status) updateData.status = status;
       if (req.body.isNewArrival !== undefined) {
         updateData.isNewArrival = req.body.isNewArrival === 'true' || req.body.isNewArrival === true;
+      }
+      if (req.body.isTrending !== undefined) {
+        updateData.isTrending = req.body.isTrending === 'true' || req.body.isTrending === true;
       }
 
       if (materialVariants !== undefined) updateData.materialVariants = parseJSONField(materialVariants, []);

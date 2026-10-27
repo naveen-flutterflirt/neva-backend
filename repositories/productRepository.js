@@ -131,6 +131,33 @@ class ProductRepository {
     return products;
   }
 
+  async findTrending() {
+    return await Product.findAll({
+      where: {
+        isTrending: true,
+        status: 'active',
+      },
+      include: [
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name', 'slug'],
+        },
+        {
+          model: Category,
+          as: 'subCategory',
+          attributes: ['id', 'name', 'slug'],
+        },
+        {
+          model: ProductImage,
+          as: 'images',
+          attributes: ['id', 'imageUrl', 'isPrimary', 'sortOrder', 'mediaType', 'color'],
+        },
+      ],
+      order: [['sortOrder', 'ASC'], ['createdAt', 'DESC']],
+    });
+  }
+
   async create(productData) {
     return await Product.create(productData);
   }

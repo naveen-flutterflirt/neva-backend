@@ -69,7 +69,7 @@ const CustomPrintRequest = sequelize.define(
       field: 'file_size',
     },
     fileUrl: {
-      type: DataTypes.TEXT('long'),
+      type: DataTypes.TEXT,
       allowNull: true,
       field: 'file_url',
     },
@@ -111,17 +111,17 @@ const CustomPrintRequest = sequelize.define(
       field: 'quote_price',
     },
     frontImage: {
-      type: DataTypes.TEXT('long'),
+      type: DataTypes.TEXT,
       allowNull: true,
       field: 'front_image',
     },
     sideImage: {
-      type: DataTypes.TEXT('long'),
+      type: DataTypes.TEXT,
       allowNull: true,
       field: 'side_image',
     },
     backImage: {
-      type: DataTypes.TEXT('long'),
+      type: DataTypes.TEXT,
       allowNull: true,
       field: 'back_image',
     },

@@ -119,6 +119,12 @@ const Product = sequelize.define('Product', {
 		defaultValue: false,
 		field: 'is_new_arrival',
 	},
+	isTrending: {
+		type: DataTypes.BOOLEAN,
+		allowNull: false,
+		defaultValue: false,
+		field: 'is_trending',
+	},
 	materialVariants: {
 		type: DataTypes.JSONB,
 		allowNull: true,

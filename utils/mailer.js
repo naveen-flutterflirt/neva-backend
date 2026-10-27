@@ -71,6 +71,119 @@ const sendOtpEmail = async (toEmail, otpCode) => {
 		};
 	}
 };
+
+/**
+ * Send Email Verification OTP via Nodemailer SMTP
+ */
+const sendVerificationEmail = async (toEmail, otpCode, userName = 'Maker') => {
+	const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Your NIVASHOP Email</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; -webkit-font-smoothing: antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; padding: 40px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 520px; background-color: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);">
+          <!-- Header -->
+          <tr>
+            <td align="center" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); padding: 36px 25px;">
+              <div style="font-size: 26px; font-weight: 900; letter-spacing: 3px; color: #ffffff; text-transform: uppercase;">
+                NIVASHOP
+              </div>
+              <div style="margin-top: 7px; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #cffafe; text-transform: uppercase;">
+                Account Verification
+              </div>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td align="center" style="padding: 40px 30px;">
+              <div style="font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 12px;">
+                Welcome, ${userName}! 👋
+              </div>
+              <div style="font-size: 14px; line-height: 1.7; color: #475569; margin-bottom: 28px;">
+                Thank you for joining NIVASHOP. Please verify your email address to activate your account and start shopping.
+              </div>
+              <!-- OTP Box -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ecfeff; border: 2px dashed #06b6d4; border-radius: 16px;">
+                <tr>
+                  <td align="center" style="padding: 20px 15px;">
+                    <div style="font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: #0891b2; text-transform: uppercase; margin-bottom: 8px;">
+                      Your Verification Code
+                    </div>
+                    <div style="font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #0891b2; padding-left: 8px;">
+                      ${otpCode}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <!-- Expiry -->
+              <div style="margin-top: 20px; font-size: 13px; color: #64748b; line-height: 1.6;">
+                This OTP code is valid for <strong style="color: #334155;">10 minutes</strong>.
+              </div>
+              <!-- Support Text -->
+              <div style="margin-top: 28px; font-size: 12px; line-height: 1.6; color: #94a3b8;">
+                If you did not create an account on NIVASHOP, please disregard this email.
+              </div>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="background-color: #f1f5f9; border-top: 1px solid #e2e8f0; padding: 22px 25px;">
+              <div style="font-size: 12px; color: #64748b; line-height: 1.6;">
+                &copy; ${new Date().getFullYear()} NIVASHOP. All rights reserved.
+              </div>
+              <div style="margin-top: 4px; font-size: 11px; color: #94a3b8;">
+                Custom 3D Printing &amp; Smart IoT Hardware Store
+              </div>
+            </td>
+          </tr>
+        </table>
+        <div style="height: 20px;"></div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+	`;
+	const transporter = createTransporter();
+	if (transporter) {
+		try {
+			let fromEmail = (process.env.SMTP_FROM || process.env.SMTP_USER || process.env.EMAIL_USER || 'no-reply@nivashop.in').trim();
+			const fromName = process.env.EMAIL_FROM_NAME || 'NIVASHOP';
+			let fromHeader = fromEmail.includes('<') ? fromEmail : `"${fromName}" <${fromEmail}>`;
+			const info = await transporter.sendMail({
+				from: fromHeader,
+				to: toEmail,
+				subject: `✨ ${otpCode} is your NIVASHOP Email Verification Code`,
+				html: htmlContent,
+			});
+			console.log(`\n========================================\n📧 [VERIFICATION EMAIL SENT SUCCESS]\nMessage ID: ${info.messageId}\nRecipient: ${toEmail}\nOTP Code: ${otpCode}\n========================================\n`);
+			return {
+				success: true,
+				messageId: info.messageId
+			};
+		} catch (err) {
+			console.error('❌ Nodemailer Verification Send Error:', err.message || err);
+			return {
+				success: false,
+				error: err.message || 'SMTP sending failed'
+			};
+		}
+	} else {
+		console.log(`\n========================================\n📧 [NODEMAILER DEMO / LOG MODE - EMAIL VERIFICATION]\nRecipient: ${toEmail}\nOTP Code: ${otpCode}\n========================================\n`);
+		return {
+			success: true,
+			demo: true,
+			otpCode
+		};
+	}
+};
 /**
  * Send Order Status Update Email via Nodemailer SMTP
  */
@@ -454,6 +567,7 @@ const sendAdminNewOrderEmail = async (orderDetails) => {
 
 module.exports = {
 	sendOtpEmail,
+	sendVerificationEmail,
 	sendOrderStatusEmail,
 	sendAdminNewOrderEmail,
 };

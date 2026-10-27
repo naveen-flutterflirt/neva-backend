@@ -20,6 +20,7 @@ const mediaUpload = upload.fields([
 
 router.get('/', productController.getProducts);
 router.get('/new-arrivals', productController.getNewArrivals);
+router.get('/trending', productController.getTrendingProducts);
 router.get('/:id', productController.getProduct);
 router.post('/', mediaUpload, productController.createProduct);
 router.put('/:id', mediaUpload, productController.updateProduct);

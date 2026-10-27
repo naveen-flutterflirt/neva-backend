@@ -2,9 +2,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 const userRepository = require('../repositories/userRepository');
-const { sendOtpEmail } = require('../utils/mailer');
+const { sendOtpEmail, sendVerificationEmail } = require('../utils/mailer');
 
 const otpStore = new Map();
+const emailVerifyStore = new Map();
 
 class AuthController {
   async signup(req, res) {
@@ -97,18 +98,30 @@ class AuthController {
       // 7. Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // 8. Create user
+      // 8. Create user (unverified by default)
       const user = await userRepository.createUser({
         name: normalizedName,
         email: normalizedEmail,
         whatsappNumber: normalizedWhatsappNumber,
         contactNumber: normalizedContactNumber,
         password: hashedPassword,
+        isEmailVerified: false,
       });
 
-      // 9. Send response without password
+      // 9. Generate 6-digit verification OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+      emailVerifyStore.set(normalizedEmail, { otp, expiresAt, userId: user.id });
+
+      console.log(`\n========================================\n✨ [EMAIL VERIFICATION OTP GENERATED]\nRecipient: ${normalizedEmail}\nOTP Code: ${otp}\n========================================\n`);
+
+      // Dispatch verification email in background (or await)
+      await sendVerificationEmail(normalizedEmail, otp, normalizedName);
+
+      // 10. Send response indicating verification needed
       return res.status(201).json({
-        message: 'User registered successfully',
+        message: 'Account created! Please check your email for the verification code.',
+        requiresVerification: true,
         data: {
           id: user.id,
           name: user.name,
@@ -116,6 +129,7 @@ class AuthController {
           whatsappNumber: user.whatsappNumber,
           contactNumber: user.contactNumber,
           role: user.role,
+          isEmailVerified: false,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         },
@@ -169,6 +183,25 @@ class AuthController {
         return res.status(401).json({
           error: 'Unauthorized',
           message: 'Invalid credentials.',
+        });
+      }
+
+      // 4.1 Enforce Email Verification for customers
+      if (user.role !== 'admin' && user.isEmailVerified === false) {
+        // Automatically ensure an active OTP exists for them
+        let record = emailVerifyStore.get(user.email);
+        if (!record || Date.now() > record.expiresAt) {
+          const otp = Math.floor(100000 + Math.random() * 900000).toString();
+          const expiresAt = Date.now() + 10 * 60 * 1000;
+          emailVerifyStore.set(user.email, { otp, expiresAt, userId: user.id });
+          sendVerificationEmail(user.email, otp, user.name).catch((e) => console.error(e));
+        }
+
+        return res.status(403).json({
+          error: 'Forbidden',
+          requiresVerification: true,
+          email: user.email,
+          message: 'Please verify your email address before signing in. A verification code has been sent to your email.',
         });
       }
 
@@ -560,6 +593,136 @@ class AuthController {
     } catch (error) {
       console.error('Delete customer error:', error);
       return res.status(500).json({ error: 'Internal Server Error', message: error.message });
+    }
+  }
+
+  async verifyEmail(req, res) {
+    try {
+      const { email, otp } = req.body;
+      if (!email || !otp) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email and 6-digit OTP code are required.',
+        });
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+      const record = emailVerifyStore.get(normalizedEmail);
+
+      if (!record) {
+        return res.status(400).json({
+          success: false,
+          message: 'No pending verification found for this email. Please request a new code.',
+        });
+      }
+
+      if (Date.now() > record.expiresAt) {
+        emailVerifyStore.delete(normalizedEmail);
+        return res.status(400).json({
+          success: false,
+          message: 'Verification code has expired. Please request a new code.',
+        });
+      }
+
+      if (record.otp !== otp.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid 6-digit OTP code. Please check and try again.',
+        });
+      }
+
+      const user = await userRepository.findByEmail(normalizedEmail);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User account not found.',
+        });
+      }
+
+      await user.update({ isEmailVerified: true });
+      emailVerifyStore.delete(normalizedEmail);
+
+      console.log(`\n========================================\n✅ [EMAIL VERIFIED SUCCESSFULLY] User: ${normalizedEmail}\n========================================\n`);
+
+      // Issue JWT token immediately upon verification
+      const token = jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        config.jwtSecret,
+        { expiresIn: config.jwtExpiresIn }
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: 'Email verified successfully! Welcome to NIVASHOP.',
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      });
+    } catch (error) {
+      console.error('VerifyEmail error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to verify email. Please try again.',
+      });
+    }
+  }
+
+  async resendVerificationOtp(req, res) {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email address is required.',
+        });
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+      const user = await userRepository.findByEmail(normalizedEmail);
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'No registered account found with this email.',
+        });
+      }
+
+      if (user.isEmailVerified) {
+        return res.status(400).json({
+          success: false,
+          message: 'This account email is already verified. You can sign in directly.',
+        });
+      }
+
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = Date.now() + 10 * 60 * 1000;
+      emailVerifyStore.set(normalizedEmail, { otp, expiresAt, userId: user.id });
+
+      console.log(`\n========================================\n🔄 [RESEND VERIFICATION OTP]\nRecipient: ${normalizedEmail}\nOTP Code: ${otp}\n========================================\n`);
+
+      const mailRes = await sendVerificationEmail(normalizedEmail, otp, user.name);
+      if (!mailRes.success) {
+        console.error('❌ Email dispatch notice:', mailRes.error);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send verification code. Please try again later.',
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'A new 6-digit verification code has been sent to your email.',
+      });
+    } catch (error) {
+      console.error('ResendVerificationOtp error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to resend verification code.',
+      });
     }
   }
 }

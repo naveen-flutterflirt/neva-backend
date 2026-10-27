@@ -98,6 +98,13 @@ const User = sequelize.define(
         },
       },
     },
+
+    isEmailVerified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: 'is_email_verified',
+    },
   },
   {
     tableName: 'users',

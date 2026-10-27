@@ -26,6 +26,8 @@ const socialPostRoutes = require('./routes/socialPostRoutes');
 const shippingRoutes = require('./routes/shippingRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const iotKitRoutes = require('./routes/iotKitRoutes');
+const couponRoutes = require('./routes/couponRoutes');
+const popupBannerRoutes = require('./routes/popupBannerRoutes');
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
@@ -36,6 +38,8 @@ app.use('/api/social-posts', socialPostRoutes);
 app.use('/api/shipping', shippingRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/iot-kits', iotKitRoutes);
+app.use('/api/coupons', couponRoutes);
+app.use('/api/popup-banners', popupBannerRoutes);
 // Test APIs
 app.get('/api/test', (req, res) => {
 	res.json({
@@ -67,11 +71,10 @@ const startServer = async (retries = 5) => {
 		try {
 			await sequelize.authenticate();
 			console.log('Database connected successfully.');
-			await sequelize.sync();
-			console.log('Database models synced.');
 			app.listen(PORT, () => {
 				console.log(`Server is running on port ${PORT} `);
 			});
+			sequelize.sync().then(() => console.log('Database models synced.')).catch(e => console.log('Sync note:', e.message));
 			// Successfully connected, exit the retry loop
 			break;
 		} catch (error) {

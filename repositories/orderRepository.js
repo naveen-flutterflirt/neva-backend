@@ -145,6 +145,19 @@ class OrderRepository {
     await order.update(updateData);
     return await this.getOrderById(order.id);
   }
+
+  // Delete Order
+  async deleteOrder(id) {
+    let order = isUuid(id) ? await Order.findByPk(id) : null;
+    if (!order) {
+      order = await Order.findOne({ where: { orderNumber: id } });
+    }
+    if (!order) return null;
+
+    await OrderItem.destroy({ where: { orderId: order.id } });
+    await order.destroy();
+    return true;
+  }
 }
 
 module.exports = new OrderRepository();

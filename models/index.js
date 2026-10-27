@@ -9,6 +9,8 @@ const OrderItem = require('./orderItem');
 const SocialPost = require('./socialPost');
 const Review = require('./review');
 const IotKit = require('./iotKit');
+const Coupon = require('./coupon');
+const PopupBanner = require('./popupBanner');
 
 // User <-> Order
 User.hasMany(Order, { foreignKey: 'userId', as: 'orders' });
@@ -22,6 +24,10 @@ OrderItem.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
 Category.belongsTo(Category, { as: 'parent', foreignKey: 'parentId' });
 Category.hasMany(Category, { as: 'subcategories', foreignKey: 'parentId' });
 
+// PopupBanner <-> Product
+PopupBanner.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
+Product.hasMany(PopupBanner, { foreignKey: 'productId', as: 'popupBanners' });
+
 module.exports = {
   sequelize,
   User,
@@ -34,4 +40,6 @@ module.exports = {
   SocialPost,
   Review,
   IotKit,
+  Coupon,
+  PopupBanner,
 };

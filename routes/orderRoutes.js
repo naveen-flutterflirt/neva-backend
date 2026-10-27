@@ -17,4 +17,10 @@ router.get('/:id', orderController.getOrderById);
 // PUT /api/orders/:id/status - Update order status (Admin)
 router.put('/:id/status', orderController.updateOrderStatus);
 
+// PUT /api/orders/:id/payment-status - Update payment status (Admin)
+router.put('/:id/payment-status', orderController.updatePaymentStatus);
+
+// DELETE /api/orders/:id - Delete order permanently (Admin)
+router.delete('/:id', orderController.deleteOrder);
+
 module.exports = router;

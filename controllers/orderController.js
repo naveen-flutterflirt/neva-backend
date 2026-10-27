@@ -275,5 +275,59 @@ const { isValidPhone, isValidEmail, validateAddressString, normalizePhone } = re
 			});
 		}
 	}
+	// PUT /api/orders/:id/payment-status - Update Payment Status
+	async updatePaymentStatus(req, res) {
+		try {
+			const { id } = req.params;
+			const { paymentStatus } = req.body;
+			if (!paymentStatus) {
+				return res.status(400).json({
+					success: false,
+					message: 'Payment status is required.',
+				});
+			}
+			const updatedOrder = await orderRepository.updatePaymentStatus(id, paymentStatus);
+			if (!updatedOrder) {
+				return res.status(404).json({
+					success: false,
+					message: 'Order not found.',
+				});
+			}
+			return res.status(200).json({
+				success: true,
+				message: `Payment status updated to ${paymentStatus}!`,
+				data: updatedOrder,
+			});
+		} catch (error) {
+			console.error('Update Payment Status Error:', error);
+			return res.status(500).json({
+				success: false,
+				message: error.message || 'Failed to update payment status.',
+			});
+		}
+	}
+	// DELETE /api/orders/:id - Delete Order
+	async deleteOrder(req, res) {
+		try {
+			const { id } = req.params;
+			const deleted = await orderRepository.deleteOrder(id);
+			if (!deleted) {
+				return res.status(404).json({
+					success: false,
+					message: 'Order not found.',
+				});
+			}
+			return res.status(200).json({
+				success: true,
+				message: 'Order deleted successfully from database! 🗑️',
+			});
+		} catch (error) {
+			console.error('Delete Order Controller Error:', error);
+			return res.status(500).json({
+				success: false,
+				message: error.message || 'Failed to delete order.',
+			});
+		}
+	}
 }
 module.exports = new OrderController();
